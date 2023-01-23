@@ -12,11 +12,12 @@
 <body>
     <div class="container py-5">
         <form action="">
-            <input type="text" name="foo" class="form-control mb-5" data-form-constraints="length:0:38 nodot nowhitespace nonumber">
-            <input type="text" name="bar" class="form-control mb-5" data-form-constraints="length:10:10 nodot nowhitespace">
-            <input type="date" name="bar" class="form-control mb-5" data-form-constraints="dateInFuture:1:0:0">
+            <select name="test1" id="test1" class="form-select mb-5">
+                <option value="1">1</option>
+                <option value="0">0</option>
+            </select>
 
-            <input type="submit" value="SEND" class="btn btn-lg btn-primary float-end">
+            <input type="text" name="test2" data-form-constraints="dependsOnCriteria:#test1:1:length:2:2 dependsOnCriteria:#test1:0:empty" class="form-control">
         </form>
     </div>
 
@@ -34,10 +35,6 @@
         const validator = new Validator(true);
 
         validator.watch(document.querySelectorAll("input"));
-
-        document.getElementById("btn").onclick = () => {
-            validator.validate(document.querySelectorAll("input"));
-        }
     </script>
 </body>
 

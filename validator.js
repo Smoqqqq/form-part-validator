@@ -18,7 +18,8 @@ class Validator {
             "nonumber",
             "email",
             "dateInPast",
-            "dateInFuture"
+            "dateInFuture",
+            "dependsOnCriteria"
         ];
     }
 
@@ -39,6 +40,10 @@ class Validator {
         }
     }
 
+    /**
+     * Prevents form submitting if their if constraints failure
+     * @param {HtmlInputElement} input 
+     */
     watchInputConstraints(input) {
         let parentForm = input.closest("form");
 
@@ -69,7 +74,7 @@ class Validator {
      */
     getInputConstraints(input) {
         let constraint = input.getAttribute('data-form-constraints');
-        return constraint ? constraint.match(/(\w|:)+/g) : false;
+        return constraint ? constraint.match(/(\w|:|#)+/g) : false;
     }
 
     /**
@@ -89,9 +94,22 @@ class Validator {
                 args.shift();
             }
             if (this.CONSTRAINTS.indexOf(constraints[i]) >= 0) {
-                let res = this[constraints[i]](input, ...args);
+                let res = false;
 
-                if (res) this.clearInputAlerts(input, constraints[i]);
+                if (constraints[i] === "dependsOnCriteria") {
+                    let dependsOn = args[0];
+                    args.shift();
+                    let criteria = args[0];
+                    args.shift();
+                    let constraint = args[0];
+                    args.shift();
+
+                    res = this.dependsOnCriteria(input, dependsOn, criteria, constraint, args);
+                    if (res) this.clearInputAlerts(input, constraint);
+                } else {
+                    res = this[constraints[i]](input, ...args);
+                    if (res) this.clearInputAlerts(input, constraints[i]);
+                }
 
                 if (!res) valid = false;
             } else {
@@ -286,6 +304,47 @@ class Validator {
 
         this.inputAlert(input, `La date doit être au moins il dans ${minAgeYears} an(s), ${minAgeMonths} mois et ${minAgeDays} jour(s)`, 'dateInFuture')
         return false;
+    }
+
+    /**
+     * test if a value is empty
+     * @param {HtmlInputElement} input 
+     * @returns {Boolean}
+     */
+    empty(input) {
+        if(input.value.length === 0) return true;
+
+        this.inputAlert(input, "Ce champs doit être vide", "empty");
+    }
+
+    /**
+     * retourne vrai si :
+     *  - le critère match et la contrainte match
+     *  - le critère ne match pas
+     * 
+     * Syntax :
+     *  dependsOnCriteria:<selecteurCSSelementCritère>:<valeurElementCritere>:contrainte
+     * ex :
+     *  dependsOnCriteria:#poleEmploi:1:length:7:7
+     *  -> Si #poleEmploi à la valeur 1
+     *      -> alors on check que la longueure soit à 7
+     * @param {HtmlInputElement} input input to test
+     * @param {HtmlInputElement} dependsOn input which it depends of
+     * @param {*} criteria value of dependsOn for it to return true
+     * @returns true if the criteria is met
+     */
+    dependsOnCriteria(input, dependsOn, criteria, constraint, args) {
+        let dependentInput = document.querySelector(dependsOn);
+        if (!dependentInput) {
+            console.error("dependsOn input not found : " + dependsOn);
+            return false;
+        }
+
+        if (dependentInput.value === criteria) {
+            return this[constraint](input, ...args);
+        }
+
+        return true;
     }
 
     /**
